@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}Food Database - NutriTrack{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card mb-4">
+        <div class="card-header flex items-center justify-between">
+            <h1 class="card-title">Food Database 🍎</h1>
+            <a href="{% url 'nutrition:add_custom_food' %}" class="btn btn-primary">+ Add Custom Food</a>
+        </div>
+        
+        <!-- Search Form -->
+        <div class="card-body">
+            <form method="GET" class="flex gap-4 mb-4">
+                <div class="form-group flex-1">
+                    <input type="text" 
+                           name="q" 
+                           value="{{ query }}" 
+                           placeholder="Search foods..." 
+                           class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <select name="category" class="form-input form-select">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.name }}" 
+                                {% if category.name == selected_category %}selected{% endif %}>
+                            {{ category.icon }} {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">🔍 Search</button>
+                {% if query or selected_category %}
+                <a href="{% url 'nutrition:food_search' %}" class="btn btn-outline">Clear</a>
+                {% endif %}
+            </form>
+            
+            {% if total_results %}
+            <p class="text-muted">{{ total_results }} food{{ total_results|pluralize }} found</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Food Results -->
+    {% if foods %}
+    <div class="grid grid-cols-3">
+        {% for food in foods %}
+        <div class="card">
+            <div class="card-body">
+                <div class="flex items-start justify-between mb-2">
+                    <div>
+                        <h3 class="font-weight-600 mb-1">{{ food.name }}</h3>
+                        {% if food.category %}
+                        <span class="badge badge-secondary">{{ food.category.icon }} {{ food.category.name }}</span>
+                        {% endif %}
+                        {% if food.is_custom %}
+                        <span class="badge badge-primary">Custom</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-right">
+                        <div class="font-weight-600 text-primary">{{ food.calories }}</div>
+                        <small class="text-muted">cal/100g</small>
+                    </div>
+                </div>
+                
+                <!-- Nutrition Facts -->
+                <div class="nutrition-facts grid grid-cols-3 gap-2 mb-3">
+                    <div class="text-center">
+                        <div class="font-weight-500 text-secondary">{{ food.protein|floatformat:1 }}g</div>
+                        <small class="text-muted">Protein</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-weight-500 text-warning">{{ food.carbs|floatformat:1 }}g</div>
+                        <small class="text-muted">Carbs</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-weight-500 text-danger">{{ food.fats|floatformat:1 }}g</div>
+                        <small class="text-muted">Fats</small>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-2">
+                    <a href="{% url 'nutrition:quick_add_food' food.id %}" 
+                       class="btn btn-primary btn-small flex-1">+ Add to Today</a>
+                    <a href="{% url 'nutrition:food_detail' food.id %}" 
+                       class="btn btn-outline btn-small">View</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if foods.has_other_pages %}
+    <div class="flex items-center justify-center mt-6">
+        <div class="pagination">
+            {% if foods.has_previous %}
+                <a href="?page={{ foods.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" 
+                   class="btn btn-outline btn-small">« Previous</a>
+            {% endif %}
+            
+            <span class="px-4 py-2">
+                Page {{ foods.number }} of {{ foods.paginator.num_pages }}
+            </span>
+            
+            {% if foods.has_next %}
+                <a href="?page={{ foods.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" 
+                   class="btn btn-outline btn-small">Next »</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <h3>No foods found</h3>
+            <p class="text-muted">Try adjusting your search terms or browse all categories.</p>
+            <a href="{% url 'nutrition:add_custom_food' %}" class="btn btn-primary">Add a Custom Food</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: var(--border-radius-sm);
+}
+
+.badge-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.badge-secondary {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+.nutrition-facts {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    background: var(--gray-50);
+}
+</style>
+{% endblock %}

@@ -108,3 +108,55 @@ def meal_plan_detail(request, plan_id):
         'entries_by_meal': entries_by_meal,
     }
     return render(request, 'nutrition/meal_plan_detail.html', context)
+
+from django.core.paginator import Paginator
+
+@login_required
+def food_search(request):
+    query = request.GET.get('q', '')
+    category = request.GET.get('category', '')
+    
+    foods = Food.objects.all()
+    
+    if query:
+        foods = foods.filter(
+            Q(name__icontains=query) | 
+            Q(category__name__icontains=query)
+        )
+    
+    if category:
+        foods = foods.filter(category__name=category)
+    
+    # Pagination
+    paginator = Paginator(foods, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'foods': page_obj,
+        'query': query,
+        'selected_category': category,
+        'categories': FoodCategory.objects.all(),
+        'total_results': foods.count(),
+    }
+    return render(request, 'nutrition/food_search.html', context)
+
+@login_required
+def add_custom_food(request):
+    if request.method == 'POST':
+        form = CustomFoodForm(request.POST)
+        if form.is_valid():
+            food = form.save(commit=False)
+            food.is_custom = True
+            food.created_by = request.user
+            food.save()
+            messages.success(request, f'Custom food "{food.name}" added successfully!')
+            return redirect('nutrition:food_search')
+    else:
+        form = CustomFoodForm()
+    
+    context = {
+        'form': form,
+        'categories': FoodCategory.objects.all(),
+    }
+    return render(request, 'nutrition/add_custom_food.html', context)
