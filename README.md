@@ -59,6 +59,7 @@
 
 
 ## 📁 Project Structure
+```
 Capstone-Project/
 │
 ├── Pipfile
@@ -101,7 +102,19 @@ Capstone-Project/
     └── templates/
         ├── auth/
         └── nutrition/
+```
 
+### Directory Descriptions
+
+- **Pipfile / Pipfile.lock** - Python dependencies management (Pipenv)
+- **README.md** - Project documentation
+- **nutritrack/** - Main project directory
+- **manage.py** - Django management command-line utility
+- **nutritrack/nutritrack/** - Project settings and configuration folder
+- **nutritrack/nutrition/** - Main Django application with models, views, and templates
+- **static/** - Static files (CSS, images, JavaScript)
+- **templates/** - HTML templates organized by feature
+  
 ## 🏗 Database Architecture (ERD)
 
 
