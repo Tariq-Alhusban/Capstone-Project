@@ -1,8 +1,148 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% load nutrition_extras %}
+{% load static %}
 
 {% block title %}Dashboard - NutriTrack{% endblock %}
 
 {% block content %}
-<h1>Welcome to NutriTrack Dashboard</h1>
-<p>This is a placeholder page. Dashboard coming soon!</p>
+<div class="container">
+    <!-- Welcome Header -->
+    <div class="card mb-4 fade-in">
+        <div class="card-body">
+            <h1 class="card-title">Welcome back, {{ user.first_name|default:user.username }}! 👋</h1>
+            <p class="text-muted">Today is {{ meal_plan.date|date:"F d, Y" }}</p>
+        </div>
+    </div>
+
+    <!-- Daily Progress Stats -->
+    <div class="stats mb-4">
+        <div class="stat">
+            <span class="stat-value">{{ meal_plan.total_calories }}</span>
+            <span class="stat-label">Calories Consumed</span>
+        </div>
+        <div class="stat">
+            <span class="stat-value">{{ meal_plan.calories_remaining }}</span>
+            <span class="stat-label">Remaining</span>
+        </div>
+        <div class="stat">
+            <span class="stat-value">{{ meal_plan.total_protein }}</span>
+            <span class="stat-label">Protein (g)</span>
+        </div>
+        <div class="stat">
+            <span class="stat-value">{{ meal_plan.progress_percentage }}%</span>
+            <span class="stat-label">Goal Progress</span>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="flex items-center justify-between mb-2">
+                <span class="font-weight-500">Daily Goal Progress</span>
+                <span class="text-muted">{{ meal_plan.total_calories }} / {{ meal_plan.goal_calories }} calories</span>
+            </div>
+            <div class="progress">
+                <div class="progress-bar progress-{% if meal_plan.progress_percentage > 100 %}danger{% elif meal_plan.progress_percentage > 80 %}warning{% else %}success{% endif %}" 
+                     style="width: {{ meal_plan.progress_percentage }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meal Sections -->
+    <div class="grid grid-cols-2 mb-4">
+        {% for meal_type, display_name in meal_types %}
+        <div class="card">
+            <div class="card-header flex items-center justify-between">
+                <h3 class="card-title">{{ display_name }} 
+                    {% if meal_type == 'breakfast' %}🍳
+                    {% elif meal_type == 'lunch' %}🥗
+                    {% elif meal_type == 'dinner' %}🍽️
+                    {% else %}🥜{% endif %}
+                </h3>
+                <a href="{% url 'nutrition:add_meal_entry' meal_plan.id meal_type %}" 
+                   class="btn btn-primary btn-small">+ Add Food</a>
+            </div>
+            <div class="card-body">
+                {% with entries=meal_plan.mealentry_set.all %}
+                {% with filtered_entries=entries|filter_by_meal_type:meal_type %}
+                {% if filtered_entries %}
+                    {% for entry in filtered_entries %}
+                    <div class="meal-entry flex items-center justify-between mb-2">
+                        <div>
+                            <strong>{{ entry.food.name }}</strong>
+                            <br><span class="text-muted text-sm">{{ entry.quantity }}{{ entry.unit }} • {{ entry.scaled_calories }} cal</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="{% url 'nutrition:edit_meal_entry' entry.id %}" 
+                               class="btn btn-outline btn-small">Edit</a>
+                            <a href="{% url 'nutrition:delete_meal_entry' entry.id %}" 
+                               class="btn btn-danger btn-small">×</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div class="mt-2 pt-2 border-top">
+                        <small class="text-muted">
+                            Total: {{ filtered_entries|sum_calories }} calories
+                        </small>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No foods added yet</p>
+                {% endif %}
+                {% endwith %}
+                {% endwith %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Quick Actions</h3>
+        </div>
+        <div class="card-body">
+            <div class="grid grid-cols-3">
+                <a href="{% url 'nutrition:copy_yesterday' %}" class="btn btn-secondary">
+                    📋 Copy Yesterday's Meals
+                </a>
+                <a href="{% url 'nutrition:food_search' %}" class="btn btn-outline">
+                    🔍 Search Foods
+                </a>
+                <a href="{% url 'nutrition:my_recipes' %}" class="btn btn-outline">
+                    📝 My Recipes
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Meal Plans -->
+    {% if recent_plans %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3 class="card-title">Recent Meal Plans</h3>
+        </div>
+        <div class="card-body">
+            {% for plan in recent_plans %}
+            <div class="flex items-center justify-between mb-2">
+                <div>
+                    <strong>{{ plan.date|date:"M d" }}</strong>
+                    <span class="text-muted">• {{ plan.total_calories }} calories</span>
+                </div>
+                <a href="{% url 'nutrition:meal_plan_detail' plan.id %}" 
+                   class="btn btn-outline btn-small">View</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-refresh progress every 30 seconds
+setInterval(() => {
+    location.reload();
+}, 30000);
+</script>
 {% endblock %}

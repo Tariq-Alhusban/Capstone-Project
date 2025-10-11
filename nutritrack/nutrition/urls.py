@@ -12,4 +12,7 @@ urlpatterns = [
     # Main pages
     path('', views.dashboard, name='dashboard'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('copy-yesterday/', views.copy_yesterday, name='copy_yesterday'),
+    path('meal-plan/<int:plan_id>/', views.meal_plan_detail, name='meal_plan_detail'),
+ 
 ]
