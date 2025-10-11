@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Edit{% else %}Add{% endif %} Food - NutriTrack{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card" style="max-width: 600px; margin: 0 auto;">
+        <div class="card-header">
+            <h1 class="card-title">
+                {% if is_edit %}✏️ Edit Food Entry{% else %}➕ Add Food to Meal{% endif %}
+            </h1>
+        </div>
+        
+        <form method="POST" class="card-body">
+            {% csrf_token %}
+            
+            <!-- Food Selection with Search -->
+            <div class="form-group">
+                <label for="{{ form.food.id_for_label }}" class="form-label">{{ form.food.label }}</label>
+                {{ form.food }}
+                <small class="text-muted">
+                    Can't find your food? <a href="{% url 'nutrition:food_search' %}" target="_blank">Search the database</a> 
+                    or <a href="{% url 'nutrition:add_custom_food' %}" target="_blank">add a custom food</a>
+                </small>
+            </div>
+            
+            <!-- Meal Type -->
+            <div class="form-group">
+                <label for="{{ form.meal_type.id_for_label }}" class="form-label">{{ form.meal_type.label }}</label>
+                {{ form.meal_type }}
+            </div>
+            
+            <!-- Quantity and Unit -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label for="{{ form.quantity.id_for_label }}" class="form-label">{{ form.quantity.label }}</label>
+                    {{ form.quantity }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.unit.id_for_label }}" class="form-label">{{ form.unit.label }}</label>
+                    {{ form.unit }}
+                </div>
+            </div>
+            
+            <!-- Nutrition Preview (Dynamic) -->
+            <div id="nutrition-preview" class="card bg-light mt-4" style="display: none;">
+                <div class="card-body">
+                    <h6 class="card-title">Nutrition Preview</h6>
+                    <div class="grid grid-cols-4 gap-2 text-center">
+                        <div>
+                            <div class="font-weight-600" id="preview-calories">0</div>
+                            <small class="text-muted">Calories</small>
+                        </div>
+                        <div>
+                            <div class="font-weight-600" id="preview-protein">0g</div>
+                            <small class="text-muted">Protein</small>
+                        </div>
+                        <div>
+                            <div class="font-weight-600" id="preview-carbs">0g</div>
+                            <small class="text-muted">Carbs</small>
+                        </div>
+                        <div>
+                            <div class="font-weight-600" id="preview-fats">0g</div>
+                            <small class="text-muted">Fats</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary flex-1">
+                    {% if is_edit %}💾 Update Food{% else %}➕ Add Food{% endif %}
+                </button>
+                <a href="{% url 'nutrition:dashboard' %}" class="btn btn-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Recent Foods (for quick access) -->
+    {% if recent_foods and not is_edit %}
+    <div class="card mt-4" style="max-width: 600px; margin: 2rem auto 0;">
+        <div class="card-header">
+            <h3 class="card-title">Recently Used Foods</h3>
+        </div>
+        <div class="card-body">
+            <div class="grid grid-cols-2 gap-2">
+                {% for food in recent_foods %}
+                <div class="quick-food-item p-2 border rounded cursor-pointer" data-food-id="{{ food.id }}" data-food-name="{{ food.name }}" data-calories="{{ food.calories }}" data-protein="{{ food.protein|default:0 }}" data-carbs="{{ food.carbs|default:0 }}" data-fats="{{ food.fats|default:0 }}">
+                    <strong>{{ food.name }}</strong>
+                    <br><small class="text-muted">{{ food.calories }} cal/100g</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Nutrition calculation and preview
+const foodSelect = document.getElementById('id_food');
+const quantityInput = document.getElementById('id_quantity');
+const unitSelect = document.getElementById('id_unit');
+const previewDiv = document.getElementById('nutrition-preview');
+
+// Food data (passed from backend)
+const foodData = {
+    {% for food in form.food.queryset %}
+    {{ food.id }}: {
+        name: "{{ food.name|escapejs }}",
+        calories: {{ food.calories }},
+        protein: {{ food.protein|default:0 }},
+        carbs: {{ food.carbs|default:0 }},
+        fats: {{ food.fats|default:0 }}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+};
+
+function updateNutritionPreview() {
+    const foodId = foodSelect.value;
+    const quantity = parseFloat(quantityInput.value) || 0;
+    const unit = unitSelect.value;
+    
+    if (foodId && quantity > 0 && foodData[foodId]) {
+        const food = foodData[foodId];
+        let multiplier = quantity / 100; // Base is per 100g
+        
+        // Adjust multiplier based on unit
+        if (unit === 'cup') multiplier = quantity * 2.4;
+        else if (unit === 'tbsp') multiplier = quantity * 0.15;
+        else if (unit === 'piece' || unit === 'serving') multiplier = quantity;
+        
+        // Calculate nutrition
+        const calories = Math.round(food.calories * multiplier);
+        const protein = (food.protein * multiplier).toFixed(1);
+        const carbs = (food.carbs * multiplier).toFixed(1);
+        const fats = (food.fats * multiplier).toFixed(1);
+        
+        // Update preview
+        document.getElementById('preview-calories').textContent = calories;
+        document.getElementById('preview-protein').textContent = protein + 'g';
+        document.getElementById('preview-carbs').textContent = carbs + 'g';
+        document.getElementById('preview-fats').textContent = fats + 'g';
+        
+        previewDiv.style.display = 'block';
+    } else {
+        previewDiv.style.display = 'none';
+    }
+}
+
+// Event listeners
+foodSelect.addEventListener('change', updateNutritionPreview);
+quantityInput.addEventListener('input', updateNutritionPreview);
+unitSelect.addEventListener('change', updateNutritionPreview);
+
+// Quick food selection
+document.querySelectorAll('.quick-food-item').forEach(item => {
+    item.addEventListener('click', function() {
+        const foodId = this.dataset.foodId;
+        const foodName = this.dataset.foodName;
+        
+        // Set food in select
+        foodSelect.value = foodId;
+        quantityInput.value = 100;
+        unitSelect.value = 'g';
+        
+        updateNutritionPreview();
+        
+        // Visual feedback
+        document.querySelectorAll('.quick-food-item').forEach(i => i.classList.remove('selected'));
+        this.classList.add('selected');
+    });
+});
+
+// Initial preview if editing
+if (foodSelect.value && quantityInput.value) {
+    updateNutritionPreview();
+}
+</script>
+
+<style>
+.quick-food-item {
+    transition: all 0.2s;
+    border: 1px solid var(--gray-300);
+}
+
+.quick-food-item:hover {
+    background: var(--gray-50);
+    border-color: var(--primary-color);
+}
+
+.quick-food-item.selected {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+</style>
+{% endblock %}

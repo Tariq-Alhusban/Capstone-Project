@@ -1,5 +1,7 @@
 from django import forms
 from .models import Food, FoodCategory
+from .models import MealEntry
+
 
 class CustomFoodForm(forms.ModelForm):
     class Meta:
@@ -21,3 +23,24 @@ class CustomFoodForm(forms.ModelForm):
         self.fields['category'].empty_label = "Select Category"
         for field in self.fields:
             self.fields[field].widget.attrs.update({'class': 'form-input'})
+
+class MealEntryForm(forms.ModelForm):
+    class Meta:
+        model = MealEntry
+        fields = ['food', 'meal_type', 'quantity', 'unit']
+        widgets = {
+            'food': forms.Select(attrs={'class': 'form-input form-select'}),
+            'meal_type': forms.Select(attrs={'class': 'form-input form-select'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-input', 'min': 0.1, 'step': 0.1}),
+            'unit': forms.Select(attrs={'class': 'form-input form-select'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['food'].queryset = Food.objects.select_related('category').order_by('category__name', 'name')
+        
+        # Make labels more user-friendly
+        self.fields['food'].label = "Food Item"
+        self.fields['meal_type'].label = "Meal"
+        self.fields['quantity'].label = "Quantity"
+        self.fields['unit'].label = "Unit"

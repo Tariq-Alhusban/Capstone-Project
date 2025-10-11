@@ -160,3 +160,107 @@ def add_custom_food(request):
         'categories': FoodCategory.objects.all(),
     }
     return render(request, 'nutrition/add_custom_food.html', context)
+
+
+
+
+from django.shortcuts import get_object_or_404  # automatically return a 404 error page if the object doesn’t exist.
+from .forms import MealEntryForm
+
+
+@login_required
+def add_meal_entry(request, meal_plan_id, meal_type=None):
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id, user=request.user)
+    
+    if request.method == 'POST':
+        form = MealEntryForm(request.POST)
+        if form.is_valid():
+            meal_entry = form.save(commit=False)
+            meal_entry.meal_plan = meal_plan
+            if meal_type:
+                meal_entry.meal_type = meal_type
+            meal_entry.save()
+            
+            messages.success(request, f'Added {meal_entry.food.name} to {meal_entry.get_meal_type_display()}!')
+            return redirect('nutrition:dashboard')
+    else:
+        initial_data = {'meal_type': meal_type} if meal_type else {}
+        form = MealEntryForm(initial=initial_data)
+    
+    context = {
+        'form': form,
+        'meal_plan': meal_plan,
+        'meal_type': meal_type,
+        'recent_foods': Food.objects.filter(
+            mealentry__meal_plan__user=request.user
+        ).distinct()[:10]
+    }
+    return render(request, 'nutrition/add_meal_entry.html', context)
+
+@login_required
+def quick_add_food(request, food_id):
+    """Quick add food to today's meal plan"""
+    food = get_object_or_404(Food, id=food_id)
+    today = date.today()
+    
+    meal_plan, created = MealPlan.objects.get_or_create(
+        user=request.user,
+        date=today,
+        defaults={'goal_calories': 2000}
+    )
+    
+    if request.method == 'POST':
+        meal_type = request.POST.get('meal_type', 'lunch')
+        quantity = float(request.POST.get('quantity', 100))
+        unit = request.POST.get('unit', 'g')
+        
+        MealEntry.objects.create(
+            meal_plan=meal_plan,
+            food=food,
+            meal_type=meal_type,
+            quantity=quantity,
+            unit=unit
+        )
+        
+        messages.success(request, f'Added {food.name} to {meal_type}!')
+        return redirect('nutrition:dashboard')
+    
+    context = {
+        'food': food,
+        'meal_plan': meal_plan,
+    }
+    return render(request, 'nutrition/quick_add_food.html', context)
+
+@login_required
+def edit_meal_entry(request, entry_id):
+    entry = get_object_or_404(MealEntry, id=entry_id, meal_plan__user=request.user)
+    
+    if request.method == 'POST':
+        form = MealEntryForm(request.POST, instance=entry)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Updated {entry.food.name}!')
+            return redirect('nutrition:dashboard')
+    else:
+        form = MealEntryForm(instance=entry)
+    
+    context = {
+        'form': form,
+        'entry': entry,
+        'is_edit': True,
+    }
+    return render(request, 'nutrition/add_meal_entry.html', context)
+
+@login_required
+def delete_meal_entry(request, entry_id):
+    entry = get_object_or_404(MealEntry, id=entry_id, meal_plan__user=request.user)
+    
+    if request.method == 'POST':
+        food_name = entry.food.name
+        entry.delete()
+        messages.success(request, f'Removed {food_name}!')
+        return redirect('nutrition:dashboard')
+    
+    context = {'entry': entry}
+    return render(request, 'nutrition/delete_meal_entry.html', context)
+
