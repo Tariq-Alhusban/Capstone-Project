@@ -264,3 +264,92 @@ def delete_meal_entry(request, entry_id):
     context = {'entry': entry}
     return render(request, 'nutrition/delete_meal_entry.html', context)
 
+from .forms import RecipeTemplateForm, RecipeIngredientFormSet
+
+@login_required
+def my_recipes(request):
+    recipes = RecipeTemplate.objects.filter(user=request.user).order_by('-created_at')
+    
+    context = {
+        'recipes': recipes,
+        'total_recipes': recipes.count(),
+    }
+    return render(request, 'nutrition/my_recipes.html', context)
+
+@login_required
+def create_recipe(request):
+    if request.method == 'POST':
+        recipe_form = RecipeTemplateForm(request.POST)
+        ingredient_formset = RecipeIngredientFormSet(request.POST)
+        
+        if recipe_form.is_valid() and ingredient_formset.is_valid():
+            recipe = recipe_form.save(commit=False)
+            recipe.user = request.user
+            recipe.save()
+            
+            # Save ingredients
+            ingredients = ingredient_formset.save(commit=False)
+            for ingredient in ingredients:
+                ingredient.recipe = recipe
+                ingredient.save()
+            
+            messages.success(request, f'Recipe "{recipe.name}" created successfully!')
+            return redirect('nutrition:recipe_detail', recipe.id)
+    else:
+        recipe_form = RecipeTemplateForm()
+        ingredient_formset = RecipeIngredientFormSet()
+    
+    context = {
+        'recipe_form': recipe_form,
+        'ingredient_formset': ingredient_formset,
+        'foods': Food.objects.all().order_by('category', 'name'),
+    }
+    return render(request, 'nutrition/create_recipe.html', context)
+
+@login_required
+def recipe_detail(request, recipe_id):
+    recipe = get_object_or_404(RecipeTemplate, id=recipe_id, user=request.user)
+    ingredients = recipe.recipeingredient_set.all().select_related('food')
+    
+    context = {
+        'recipe': recipe,
+        'ingredients': ingredients,
+        'total_ingredients': ingredients.count(),
+    }
+    return render(request, 'nutrition/recipe_detail.html', context)
+
+@login_required
+def add_recipe_to_meal(request, recipe_id):
+    """Add entire recipe to today's meal plan"""
+    recipe = get_object_or_404(RecipeTemplate, id=recipe_id, user=request.user)
+    today = date.today()
+    
+    meal_plan, created = MealPlan.objects.get_or_create(
+        user=request.user,
+        date=today,
+        defaults={'goal_calories': 2000}
+    )
+    
+    if request.method == 'POST':
+        meal_type = request.POST.get('meal_type', 'lunch')
+        
+        # Add all recipe ingredients as separate meal entries
+        added_count = 0
+        for ingredient in recipe.recipeingredient_set.all():
+            MealEntry.objects.create(
+                meal_plan=meal_plan,
+                food=ingredient.food,
+                meal_type=meal_type,
+                quantity=ingredient.quantity,
+                unit=ingredient.unit
+            )
+            added_count += 1
+        
+        messages.success(request, f'Added recipe "{recipe.name}" ({added_count} ingredients) to {meal_type}!')
+        return redirect('nutrition:dashboard')
+    
+    context = {
+        'recipe': recipe,
+        'meal_plan': meal_plan,
+    }
+    return render(request, 'nutrition/add_recipe_to_meal.html', context)

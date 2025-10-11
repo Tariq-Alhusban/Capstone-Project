@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}My Recipes - NutriTrack{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card mb-4">
+        <div class="card-header flex items-center justify-between">
+            <h1 class="card-title">My Recipes 📝</h1>
+            <a href="{% url 'nutrition:create_recipe' %}" class="btn btn-primary">+ Create Recipe</a>
+        </div>
+        <div class="card-body">
+            <p class="text-muted">{{ total_recipes }} recipe{{ total_recipes|pluralize }} saved</p>
+        </div>
+    </div>
+
+    {% if recipes %}
+    <div class="grid grid-cols-3">
+        {% for recipe in recipes %}
+        <div class="card">
+            <div class="card-body">
+                <h3 class="font-weight-600 mb-2">{{ recipe.name }}</h3>
+                
+                {% if recipe.description %}
+                <p class="text-muted mb-3">{{ recipe.description|truncatewords:15 }}</p>
+                {% endif %}
+                
+                <!-- Recipe Stats -->
+                <div class="flex items-center gap-4 mb-3 text-sm text-muted">
+                    <span>🥘 {{ recipe.ingredient_count }} ingredients</span>
+                    <span>🔥 {{ recipe.total_calories }} calories</span>
+                </div>
+                
+                <!-- Ingredient Preview -->
+                <div class="mb-3">
+                    <strong class="text-sm">Ingredients:</strong>
+                    <div class="text-sm text-muted">
+                        {% for ingredient in recipe.recipeingredient_set.all|slice:":3" %}
+                        {{ ingredient.food.name }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                        {% if recipe.ingredient_count > 3 %}
+                        and {{ recipe.ingredient_count|add:-3 }} more...
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="flex gap-2">
+                    <a href="{% url 'nutrition:add_recipe_to_meal' recipe.id %}" 
+                       class="btn btn-primary btn-small flex-1">+ Add to Meal</a>
+                    <a href="{% url 'nutrition:recipe_detail' recipe.id %}" 
+                       class="btn btn-outline btn-small">View</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <h3>No recipes yet</h3>
+            <p class="text-muted mb-4">Create your first recipe to save time when meal planning!</p>
+            <a href="{% url 'nutrition:create_recipe' %}" class="btn btn-primary">Create Your First Recipe</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

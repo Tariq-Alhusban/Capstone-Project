@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Recipe - NutriTrack{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card" style="max-width: 800px; margin: 0 auto;">
+        <div class="card-header">
+            <h1 class="card-title">📝 Create New Recipe</h1>
+        </div>
+        
+        <form method="POST" class="card-body">
+            {% csrf_token %}
+            
+            <!-- Recipe Basic Info -->
+            <div class="grid grid-cols-1 gap-4 mb-6">
+                <div class="form-group">
+                    <label for="{{ recipe_form.name.id_for_label }}" class="form-label">Recipe Name</label>
+                    {{ recipe_form.name }}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ recipe_form.description.id_for_label }}" class="form-label">Description</label>
+                    {{ recipe_form.description }}
+                    <small class="text-muted">Optional: Add cooking instructions or notes</small>
+                </div>
+            </div>
+            
+            <!-- Ingredients Section -->
+            <div class="mb-6">
+                <h3 class="mb-3">Ingredients</h3>
+                
+                {{ ingredient_formset.management_form }}
+                
+                <div id="ingredient-forms">
+                    {% for form in ingredient_formset %}
+                    <div class="ingredient-form card bg-light mb-3">
+                        <div class="card-body">
+                            <div class="flex items-center justify-between mb-2">
+                                <h6 class="mb-0">Ingredient {{ forloop.counter }}</h6>
+                                {% if not form.instance.pk %}
+                                <button type="button" class="btn btn-danger btn-small remove-ingredient">Remove</button>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="grid grid-cols-4 gap-3">
+                                <div class="col-span-2">
+                                    <label class="form-label">Food</label>
+                                    {{ form.food }}
+                                </div>
+                                <div>
+                                    <label class="form-label">Quantity</label>
+                                    {{ form.quantity }}
+                                </div>
+                                <div>
+                                    <label class="form-label">Unit</label>
+                                    {{ form.unit }}
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <label class="form-label">Notes (Optional)</label>
+                                {{ form.notes }}
+                            </div>
+                            
+                            {{ form.DELETE }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <button type="button" id="add-ingredient" class="btn btn-outline">+ Add Another Ingredient</button>
+            </div>
+            
+            <!-- Recipe Summary -->
+            <div id="recipe-summary" class="card bg-light mb-4" style="display: none;">
+                <div class="card-body">
+                    <h6 class="card-title">Recipe Summary</h6>
+                    <div class="grid grid-cols-4 gap-2 text-center">
+                        <div>
+                            <div class="font-weight-600" id="summary-calories">0</div>
+                            <small class="text-muted">Total Calories</small>
+                        </div>
+                        <div>
+                            <div class="font-weight-600" id="summary-protein">0g</div>
+                            <small class="text-muted">Protein</small>
+                        </div>
+                        <div>
+                            <div class="font-weight-600" id="summary-carbs">0g</div>
+                            <small class="text-muted">Carbs</small>
+                        </div>
+                        <div>
+                            <div class="font-weight-600" id="summary-fats">0g</div>
+                            <small class="text-muted">Fats</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary flex-1">💾 Save Recipe</button>
+                <a href="{% url 'nutrition:my_recipes' %}" class="btn btn-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Dynamic ingredient form management
+let ingredientCount = {{ ingredient_formset|length }};
+const maxIngredients = 20;
+
+// Food nutrition data for calculations
+const foodData = {
+    {% for food in foods %}
+    {{ food.id }}: {
+        calories: {{ food.calories }},
+        protein: {{ food.protein|default:0 }},
+        carbs: {{ food.carbs|default:0 }},
+        fats: {{ food.fats|default:0 }}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+};
+
+// Add ingredient form
+document.getElementById('add-ingredient').addEventListener('click', function() {
+    if (ingredientCount >= maxIngredients) {
+        alert('Maximum 20 ingredients allowed');
+        return;
+    }
+    
+    // Clone empty form (you'd need to implement this properly with Django formsets)
+    // This is simplified - in production, you'd use proper Django formset JavaScript
+    console.log('Add ingredient clicked');
+    ingredientCount++;
+});
+
+// Remove ingredient form
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('remove-ingredient')) {
+        e.target.closest('.ingredient-form').remove();
+        ingredientCount--;
+        updateRecipeSummary();
+    }
+});
+
+// Update recipe summary
+function updateRecipeSummary() {
+    let totalCalories = 0, totalProtein = 0, totalCarbs = 0, totalFats = 0;
+    
+    document.querySelectorAll('.ingredient-form').forEach(form => {
+        const foodSelect = form.querySelector('select[name*="food"]');
+        const quantityInput = form.querySelector('input[name*="quantity"]');
+        const unitSelect = form.querySelector('select[name*="unit"]');
+        
+        if (foodSelect && quantityInput && unitSelect && 
+            foodSelect.value && quantityInput.value && foodData[foodSelect.value]) {
+            
+            const food = foodData[foodSelect.value];
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const unit = unitSelect.value;
+            
+            let multiplier = quantity / 100; // Default per 100g
+            if (unit === 'cup') multiplier = quantity * 2.4;
+            else if (unit === 'tbsp') multiplier = quantity * 0.15;
+            else if (unit === 'piece' || unit === 'serving') multiplier = quantity;
+            
+            totalCalories += food.calories * multiplier;
+            totalProtein += food.protein * multiplier;
+            totalCarbs += food.carbs * multiplier;
+            totalFats += food.fats * multiplier;
+        }
+    });
+    
+    // Update summary display
+    if (totalCalories > 0) {
+        document.getElementById('summary-calories').textContent = Math.round(totalCalories);
+        document.getElementById('summary-protein').textContent = totalProtein.toFixed(1) + 'g';
+        document.getElementById('summary-carbs').textContent = totalCarbs.toFixed(1) + 'g';
+        document.getElementById('summary-fats').textContent = totalFats.toFixed(1) + 'g';
+        document.getElementById('recipe-summary').style.display = 'block';
+    } else {
+        document.getElementById('recipe-summary').style.display = 'none';
+    }
+}
+
+// Event listeners for real-time calculation
+document.addEventListener('change', updateRecipeSummary);
+document.addEventListener('input', updateRecipeSummary);
+</script>
+{% endblock %}
