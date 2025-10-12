@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Recipe to Meal{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 700px; margin: 0 auto;">
+    <div class="card">
+        <div class="card-header">
+            <h2>Add {{ recipe.name }} to Today's Meal Plan</h2>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+                <label>Select Meal Type:</label>
+                <select name="meal_type" class="form-input">
+                    <option value="breakfast">Breakfast</option>
+                    <option value="lunch">Lunch</option>
+                    <option value="dinner">Dinner</option>
+                    <option value="snack">Snack</option>
+                </select>
+                <button type="submit" class="btn btn-primary mt-2">Add Recipe</button>
+            </form>
+            <a href="{% url 'nutrition:my_recipes' %}" class="btn btn-outline mt-2">Back to Recipes</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

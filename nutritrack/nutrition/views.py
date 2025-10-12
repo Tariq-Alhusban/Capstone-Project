@@ -1,12 +1,17 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404 # automatically return a 404 error page if the object doesn’t exist.
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.views import LoginView, LogoutView
-from .models import MealPlan, Food, FoodCategory
+from .models import MealPlan, Food, FoodCategory, MealEntry, RecipeTemplate, RecipeIngredient
 from django.db.models import Q
 from datetime import date, timedelta
+from datetime import datetime
+from .forms import CustomFoodForm, MealEntryForm, RecipeTemplateForm, RecipeIngredientFormSet
+from django.core.paginator import Paginator
+from django.db.models import Sum
+from django.utils import timezone
 
 
 class CustomLoginView(LoginView):
@@ -164,7 +169,6 @@ def add_custom_food(request):
 
 
 
-from django.shortcuts import get_object_or_404  # automatically return a 404 error page if the object doesn’t exist.
 from .forms import MealEntryForm
 
 
@@ -353,3 +357,191 @@ def add_recipe_to_meal(request, recipe_id):
         'meal_plan': meal_plan,
     }
     return render(request, 'nutrition/add_recipe_to_meal.html', context)
+
+from django.db.models import Sum
+from django.utils import timezone
+
+@login_required
+def weekly_view(request):
+    # Get week range
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=6)
+    
+    # Get meal plans for the week
+    weekly_plans = []
+    for i in range(7):
+        day = week_start + timedelta(days=i)
+        try:
+            plan = MealPlan.objects.get(user=request.user, date=day)
+        except MealPlan.DoesNotExist:
+            plan = MealPlan(user=request.user, date=day, goal_calories=2000)
+        
+        weekly_plans.append({
+            'date': day,
+            'plan': plan,
+            'is_today': day == today,
+            'is_future': day > today,
+            'day_name': day.strftime('%A'),
+            'entries_count': plan.mealentry_set.count() if plan.pk else 0
+        })
+    
+    # Weekly stats
+    actual_plans = MealPlan.objects.filter(
+        user=request.user,
+        date__range=[week_start, week_end]
+    )
+    
+    weekly_stats = {
+        'total_calories': sum(plan.total_calories() for plan in actual_plans),
+        'avg_calories': sum(plan.total_calories() for plan in actual_plans) / 7 if actual_plans else 0,
+        'days_logged': actual_plans.count(),
+        'goal_calories': 2000 * 7,
+    }
+    
+    context = {
+        'weekly_plans': weekly_plans,
+        'weekly_stats': weekly_stats,
+        'week_start': week_start,
+        'week_end': week_end,
+        'today': today,
+    }
+    return render(request, 'nutrition/weekly_view.html', context)
+
+@login_required
+def meal_plan_by_date(request, date_str=None):
+    if date_str:
+        try:
+            selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Invalid date format")
+            return redirect('nutrition:dashboard')
+    else:
+        selected_date = date.today()
+    
+    # Get or create meal plan for selected date
+    meal_plan, created = MealPlan.objects.get_or_create(
+        user=request.user,
+        date=selected_date,
+        defaults={'goal_calories': 2000}
+    )
+    
+    # Navigation dates
+    prev_date = selected_date - timedelta(days=1)
+    next_date = selected_date + timedelta(days=1)
+    
+    context = {
+        'meal_plan': meal_plan,
+        'selected_date': selected_date,
+        'prev_date': prev_date,
+        'next_date': next_date,
+        'is_today': selected_date == date.today(),
+        'is_future': selected_date > date.today(),
+        'meal_types': [
+            ('breakfast', 'Breakfast'),
+            ('lunch', 'Lunch'), 
+            ('dinner', 'Dinner'),
+            ('snack', 'Snacks'),
+        ]
+    }
+    return render(request, 'nutrition/daily_view.html', context)
+
+@login_required
+def nutrition_analytics(request):
+    """30-day nutrition analytics"""
+    end_date = date.today()
+    start_date = end_date - timedelta(days=30)
+    
+    # Get meal plans for last 30 days
+    plans = MealPlan.objects.filter(
+        user=request.user,
+        date__range=[start_date, end_date]
+    ).order_by('date')
+    
+    # Calculate daily averages and trends
+    analytics_data = []
+    total_calories = 0
+    total_protein = 0
+    total_days = 0
+    
+    for plan in plans:
+        daily_data = {
+            'date': plan.date,
+            'calories': plan.total_calories(),
+            'protein': plan.total_protein(),
+            'carbs': plan.total_carbs(),
+            'fats': plan.total_fats(),
+            'goal_met': plan.total_calories() >= (plan.goal_calories * 0.8),
+            'progress': plan.progress_percentage()
+        }
+        analytics_data.append(daily_data)
+        
+        total_calories += daily_data['calories']
+        total_protein += daily_data['protein']
+        total_days += 1
+    
+    # Summary statistics
+    summary_stats = {
+        'avg_calories': round(total_calories / total_days) if total_days > 0 else 0,
+        'avg_protein': round(total_protein / total_days, 1) if total_days > 0 else 0,
+        'days_logged': total_days,
+        'goal_success_rate': len([d for d in analytics_data if d['goal_met']]) / total_days * 100 if total_days > 0 else 0,
+        'best_day': max(analytics_data, key=lambda x: x['calories']) if analytics_data else None,
+        'consistency_score': len([d for d in analytics_data if d['progress'] > 80]) / total_days * 100 if total_days > 0 else 0
+    }
+    
+    context = {
+        'analytics_data': analytics_data,
+        'summary_stats': summary_stats,
+        'date_range': f"{start_date.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')}",
+        'chart_data': [{'date': d['date'].isoformat(), 'calories': d['calories']} for d in analytics_data]
+    }
+    return render(request, 'nutrition/analytics.html', context)
+
+@login_required
+def food_detail(request, food_id):
+    """View detailed information about a specific food"""
+    food = get_object_or_404(Food, id=food_id)
+    context = {
+        'food': food,
+        'recent_entries': MealEntry.objects.filter(
+            food=food, 
+            meal_plan__user=request.user
+        ).order_by('-meal_plan__date')[:5]
+    }
+    return render(request, 'nutrition/food_detail.html', context)
+
+
+@login_required
+def quick_add_food(request, food_id):
+    """Quick add food to today's meal plan"""
+    food = get_object_or_404(Food, id=food_id)
+    today = date.today()
+    
+    meal_plan, created = MealPlan.objects.get_or_create(
+        user=request.user,
+        date=today,
+        defaults={'goal_calories': 2000}
+    )
+    
+    if request.method == 'POST':
+        meal_type = request.POST.get('meal_type', 'lunch')
+        quantity = float(request.POST.get('quantity', 100))
+        unit = request.POST.get('unit', 'g')
+        
+        MealEntry.objects.create(
+            meal_plan=meal_plan,
+            food=food,
+            meal_type=meal_type,
+            quantity=quantity,
+            unit=unit
+        )
+        
+        messages.success(request, f'Added {food.name} to {meal_type}!')
+        return redirect('nutrition:dashboard')
+    
+    context = {
+        'food': food,
+        'meal_plan': meal_plan,
+    }
+    return render(request, 'nutrition/quick_add_food.html', context)

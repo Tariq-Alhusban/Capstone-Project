@@ -31,7 +31,11 @@
                 <h3 class="mb-3">Ingredients</h3>
                 
                 {{ ingredient_formset.management_form }}
-                
+
+                <div id="empty-form" style="display:none;">
+                  {{ ingredient_formset.empty_form.as_p }}
+                </div>
+
                 <div id="ingredient-forms">
                     {% for form in ingredient_formset %}
                     <div class="ingredient-form card bg-light mb-3">
@@ -125,15 +129,36 @@ const foodData = {
 
 // Add ingredient form
 document.getElementById('add-ingredient').addEventListener('click', function() {
-    if (ingredientCount >= maxIngredients) {
+    let totalForms = document.getElementById('id_recipeingredient_set-TOTAL_FORMS');
+    let currentFormCount = parseInt(totalForms.value);
+
+    if (currentFormCount >= maxIngredients) {
         alert('Maximum 20 ingredients allowed');
         return;
     }
     
-    // Clone empty form (you'd need to implement this properly with Django formsets)
-    // This is simplified - in production, you'd use proper Django formset JavaScript
-    console.log('Add ingredient clicked');
-    ingredientCount++;
+    let emptyForm = document.getElementById('empty-form').innerHTML;
+    let newFormHtml = emptyForm.replace(/__prefix__/g, currentFormCount);
+    let container = document.getElementById('ingredient-forms');
+    let div = document.createElement('div');
+    div.classList.add('ingredient-form', 'card', 'bg-light', 'mb-3');
+ div.innerHTML = `
+  <div class="card-body">
+      <div class="flex items-center justify-between mb-2">
+          <h6 class="mb-0">Ingredient</h6>
+          <button type="button" class="btn btn-danger btn-small remove-ingredient">Remove</button>
+      </div>
+      <div class="grid grid-cols-4 gap-3">
+          ${newFormHtml}
+      </div>
+  </div>
+ `;    
+    container.appendChild(div);
+    totalForms.value = currentFormCount + 1;
+
+    ingredientCount = currentFormCount + 1;
+    updateRecipeSummary();
+
 });
 
 // Remove ingredient form

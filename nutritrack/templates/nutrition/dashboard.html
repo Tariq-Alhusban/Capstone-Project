@@ -73,11 +73,13 @@
                             <br><span class="text-muted text-sm">{{ entry.quantity }}{{ entry.unit }} • {{ entry.scaled_calories }} cal</span>
                         </div>
                         <div class="flex gap-2">
-                            <a href="{% url 'nutrition:edit_meal_entry' entry.id %}" 
-                               class="btn btn-outline btn-small">Edit</a>
-                            <a href="{% url 'nutrition:delete_meal_entry' entry.id %}" 
-                               class="btn btn-danger btn-small">×</a>
+                           <a href="{% url 'nutrition:edit_meal_entry' entry.id %}" class="btn btn-outline btn-small">Edit</a>
+                           <form action="{% url 'nutrition:delete_meal_entry' entry.id %}" method="POST" style="display:inline;">
+                             {% csrf_token %}
+                             <button type="submit" class="btn btn-danger btn-small">×</button>
+                           </form>
                         </div>
+
                     </div>
                     {% endfor %}
                     <div class="mt-2 pt-2 border-top">

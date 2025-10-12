@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Weekly View - NutriTrack{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Week Header -->
+    <div class="card mb-4">
+        <div class="card-header flex items-center justify-between">
+            <h1 class="card-title">📅 Weekly View</h1>
+            <div class="flex gap-2">
+                <a href="{% url 'nutrition:weekly_view' %}?week={{ week_start|date:'Y-m-d' }}" class="btn btn-outline btn-small">‹ Prev Week</a>
+                <a href="{% url 'nutrition:dashboard' %}" class="btn btn-outline btn-small">Today</a>
+                <a href="{% url 'nutrition:weekly_view' %}?week={{ week_end|date:'Y-m-d' }}" class="btn btn-outline btn-small">Next Week ›</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <p class="text-muted">{{ week_start|date:"F d" }} - {{ week_end|date:"F d, Y" }}</p>
+        </div>
+    </div>
+
+    <!-- Weekly Stats -->
+    <div class="stats mb-4">
+        <div class="stat">
+            <span class="stat-value">{{ weekly_stats.total_calories }}</span>
+            <span class="stat-label">Total Calories</span>
+        </div>
+        <div class="stat">
+            <span class="stat-value">{{ weekly_stats.avg_calories|floatformat:0 }}</span>
+            <span class="stat-label">Daily Average</span>
+        </div>
+        <div class="stat">
+            <span class="stat-value">{{ weekly_stats.days_logged }}/7</span>
+            <span class="stat-label">Days Logged</span>
+        </div>
+        <div class="stat">
+            <span class="stat-value">{{ weekly_stats.total_calories|mul:100|div:weekly_stats.goal_calories|floatformat:0 }}%</span>
+            <span class="stat-label">Weekly Goal</span>
+        </div>
+    </div>
+
+    <!-- Daily Grid -->
+    <div class="grid grid-cols-1 gap-4">
+        {% for day in weekly_plans %}
+        <div class="card {% if day.is_today %}border-primary{% elif day.is_future %}opacity-60{% endif %}">
+            <div class="card-header flex items-center justify-between">
+                <div>
+                    <h3 class="card-title flex items-center gap-2">
+                        {{ day.day_name }}
+                        {% if day.is_today %}<span class="badge badge-primary">Today</span>{% endif %}
+                    </h3>
+                    <p class="text-muted text-sm">{{ day.date|date:"M d, Y" }}</p>
+                </div>
+                <div class="text-right">
+                    {% if day.plan.pk %}
+                    <div class="font-weight-600 text-primary">{{ day.plan.total_calories }} cal</div>
+                    <div class="text-sm text-muted">{{ day.entries_count }} item{{ day.entries_count|pluralize }}</div>
+                    {% else %}
+                    <div class="text-muted">No meals logged</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if day.plan.pk %}
+            <div class="card-body">
+                <!-- Progress Bar -->
+                <div class="progress mb-3">
+                    <div class="progress-bar progress-{% if day.plan.progress_percentage > 100 %}danger{% elif day.plan.progress_percentage > 80 %}warning{% else %}success{% endif %}" 
+                         style="width: {{ day.plan.progress_percentage }}%"></div>
+                </div>
+                
+                <!-- Macro Summary -->
+                <div class="grid grid-cols-3 gap-4 text-center text-sm">
+                    <div>
+                        <div class="font-weight-600">{{ day.plan.total_protein }}g</div>
+                        <div class="text-muted">Protein</div>
+                    </div>
+                    <div>
+                        <div class="font-weight-600">{{ day.plan.total_carbs }}g</div>
+                        <div class="text-muted">Carbs</div>
+                    </div>
+                    <div>
+                        <div class="font-weight-600">{{ day.plan.total_fats }}g</div>
+                        <div class="text-muted">Fats</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="card-footer">
+                <div class="flex gap-2">
+                    <a href="{% url 'nutrition:meal_plan_by_date' day.date|date:'Y-m-d' %}" 
+                       class="btn btn-outline btn-small flex-1">
+                       {% if day.plan.pk %}View Details{% else %}Start Planning{% endif %}
+                    </a>
+                    {% if day.plan.pk %}
+                    <a href="{% url 'nutrition:copy_day' day.date|date:'Y-m-d' %}" 
+                       class="btn btn-outline btn-small">📋 Copy</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.opacity-60 {
+    opacity: 0.6;
+}
+
+.border-primary {
+    border-color: var(--primary-color) !important;
+    border-width: 2px;
+}
+</style>
+{% endblock %}

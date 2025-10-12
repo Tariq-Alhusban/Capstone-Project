@@ -1,6 +1,9 @@
 from django import forms
 from .models import Food, FoodCategory
 from .models import MealEntry
+from .models import RecipeTemplate
+from .models import RecipeIngredient
+from django.forms import inlineformset_factory
 
 
 class CustomFoodForm(forms.ModelForm):
@@ -46,7 +49,6 @@ class MealEntryForm(forms.ModelForm):
         self.fields['unit'].label = "Unit"
 
 
-from django.forms import inlineformset_factory
 
 class RecipeTemplateForm(forms.ModelForm):
     class Meta:

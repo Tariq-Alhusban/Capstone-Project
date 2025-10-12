@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Recipe Details - NutriTrack{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 700px; margin: 0 auto;">
+    <div class="card">
+        <div class="card-header">
+            <h2>{{ recipe.name }}</h2>
+        </div>
+        <div class="card-body">
+            <p>{{ recipe.description }}</p>
+            
+            <h4>Ingredients:</h4>
+            <ul>
+                {% for ingredient in ingredients %}
+                <li>
+                    {{ ingredient.food.name }}: {{ ingredient.quantity }} {{ ingredient.unit }}
+                </li>
+                {% empty %}
+                <li>No ingredients added yet.</li>
+                {% endfor %}
+            </ul>
+            
+            <a href="{% url 'nutrition:my_recipes' %}" class="btn btn-outline">← Back to My Recipes</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+

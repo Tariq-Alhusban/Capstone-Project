@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Meal Plan Details{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="card" style="max-width:800px; margin:0 auto;">
+    <div class="card-header">
+      <h2>{{ meal_plan.date|date:"F d, Y" }} - Meal Plan</h2>
+    </div>
+    <div class="card-body">
+      <ul>
+        <li><strong>Calories Goal:</strong> {{ meal_plan.goal_calories }}</li>
+        <li><strong>Calories Consumed:</strong> {{ meal_plan.total_calories }}</li>
+        <li><strong>Protein:</strong> {{ meal_plan.total_protein }} g</li>
+        <li><strong>Meals:</strong>
+          <ul>
+            {% for entry in meal_plan.mealentry_set.all %}
+              <li>
+                <strong>{{ entry.meal_type|title }}:</strong>
+                {{ entry.food.name }} ({{ entry.quantity }}{{ entry.unit }} - {{ entry.scaled_calories }} cal)
+              </li>
+            {% endfor %}
+          </ul>
+        </li>
+      </ul>
+      <a href="{% url 'nutrition:dashboard' %}" class="btn btn-outline">← Back to Dashboard</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

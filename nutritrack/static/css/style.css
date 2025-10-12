@@ -103,6 +103,33 @@ body {
     padding: 0.5rem 0;
 }
 
+.main-navbar {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin: 1rem 0;
+  text-decoration: none;
+  color: var(--gray-600);
+  font-weight: 500;
+  transition: color 0.2s;
+  padding: 0.5rem 0;  
+}
+
+.main-navbar a {
+  text-decoration: none;
+  color: #454860;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+}
+.main-navbar a.active, .main-navbar a:hover {
+  background: #f1f3fa;
+  color: #0b69c7;
+  text-decoration: none;
+}
+
+
 .nav-link:hover {
     color: var(--primary-color);
 }
@@ -412,3 +439,4 @@ body {
 .fade-in {
     animation: fadeIn 0.3s ease-out;
 }
+
