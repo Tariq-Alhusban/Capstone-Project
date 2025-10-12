@@ -127,6 +127,7 @@ const foodData = {
     {% endfor %}
 };
 
+/*
 // Add ingredient form
 document.getElementById('add-ingredient').addEventListener('click', function() {
     let totalForms = document.getElementById('id_recipeingredient_set-TOTAL_FORMS');
@@ -160,6 +161,48 @@ document.getElementById('add-ingredient').addEventListener('click', function() {
     updateRecipeSummary();
 
 });
+*/
+document.getElementById('add-ingredient').addEventListener('click', function() {
+  let container = document.getElementById('ingredient-forms');
+  let totalForms = document.getElementById('id_recipeingredient_set-TOTAL_FORMS');
+  let currentFormCount = parseInt(totalForms.value);
+
+  if (currentFormCount >= maxIngredients) {
+    alert('Maximum 20 ingredients allowed');
+    return;
+  }
+
+  // Clone the last ingredient form
+  const newForm = document.querySelector('.ingredient-form').cloneNode(true);
+
+  // Clear input/select values and update name and id attributes
+  newForm.querySelectorAll('input, select, textarea').forEach(input => {
+    input.value = '';
+    if (input.name) {
+      input.name = input.name.replace(/\-\d+\-/, '-' + currentFormCount + '-');
+    }
+    if (input.id) {
+      input.id = input.id.replace(/\-\d+\-/, '-' + currentFormCount + '-');
+    }
+  });
+
+  container.appendChild(newForm);
+  totalForms.value = currentFormCount + 1;
+  ingredientCount = currentFormCount + 1;
+
+ updateIngredientNumbers();
+
+  updateRecipeSummary();
+  
+  updateRecipeSummary();
+});
+
+function updateIngredientNumbers() {
+  document.querySelectorAll('.ingredient-form h6.mb-0').forEach((header, index) => {
+    header.textContent = 'Ingredient ' + (index + 1);
+  });
+}
+
 
 // Remove ingredient form
 document.addEventListener('click', function(e) {
