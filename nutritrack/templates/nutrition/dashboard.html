@@ -141,10 +141,10 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-// Auto-refresh progress every 30 seconds
-setInterval(() => {
-    location.reload();
-}, 30000);
-</script>
+  {{ block.super }}
+  <script>
+    setInterval(() => {
+      location.reload();
+    }, 30000);
+  </script>
 {% endblock %}

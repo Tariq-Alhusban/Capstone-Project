@@ -1,12 +1,14 @@
+
 // Mobile-specific enhancements
 document.addEventListener('DOMContentLoaded', function() {
-    // Mobile Navigation Toggle - Fixed Implementation
+    // Mobile Navigation Toggle -  Implementation
     const navMenu = document.querySelector('.nav-menu');
     const navContainer = document.querySelector('.nav-container');
+    let navToggle;
 
     if (navContainer && navMenu) {
         // Create toggle button
-        const navToggle = document.createElement('button');
+        navToggle = document.createElement('button');
         navToggle.className = 'nav-toggle';
         navToggle.innerHTML = '☰';
         navToggle.setAttribute('aria-label', 'Toggle navigation menu');
@@ -16,10 +18,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Toggle menu on click
         navToggle.addEventListener('click', function(e) {
-            e.preventDefault();
+            //e.preventDefault();
             navMenu.classList.toggle('active');
             navToggle.innerHTML = navMenu.classList.contains('active') ? '✕' : '☰';
-
             // Update aria-expanded attribute for accessibility
             const isExpanded = navMenu.classList.contains('active');
             navToggle.setAttribute('aria-expanded', isExpanded);
@@ -54,6 +55,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 navToggle.setAttribute('aria-expanded', 'false');
             }
         });
+      // Show mobile navigation toggle on small screens
+       function checkScreenSize() {
+        if (!navToggle || !navMenu) return;
+        if (window.innerWidth <= 768) {
+            navToggle.style.display = 'block';
+            console.log ("1")
+
+        } else {
+            navToggle.style.display = 'none';
+            navMenu.classList.remove('active');
+            navToggle.innerHTML = '☰';
+            console.log ("2")
+        }
+     }
+
+       checkScreenSize();
+       window.addEventListener('resize', checkScreenSize);
+
     }
     // Touch-friendly quantity adjustments
     const quantityInputs = document.querySelectorAll('input[type="number"]');
@@ -104,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Swipe to delete for meal entries
-    let swipestartX, swipestartY, currentX, currentY;
+    let swipeStartX, swipeStartY, currentX, currentY;
     const swipeThreshold = 100;
     
     document.querySelectorAll('.meal-entry').forEach(entry => {
@@ -116,18 +135,18 @@ document.addEventListener('DOMContentLoaded', function() {
         entry.appendChild(deleteAction);
         
         entry.addEventListener('touchstart', function(e) {
-            swipestartX = e.touches[0].clientX;
-            swipestartY = e.touches[0].clientY;
+            swipeStartX = e.touches[0].clientX;
+            swipeStartY = e.touches[0].clientY;
         });
         
         entry.addEventListener('touchmove', function(e) {
-            if (!swipestartX || !swipestartY) return;
+            if (!swipeStartX || !swipeStartY) return;
             
             currentX = e.touches[0].clientX;
             currentY = e.touches[0].clientY;
             
-            const diffX = swipestartX - currentX;
-            const diffY = swipestartY - currentY;
+            const diffX = swipeStartX - currentX;
+            const diffY = swipeStartY - currentY;
             
             if (Math.abs(diffX) > Math.abs(diffY) && diffX > 0) {
                 e.preventDefault();
@@ -137,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         entry.addEventListener('touchend', function(e) {
-            const diffX = swipestartX - currentX;
+            const diffX = swipeStartX - currentX;
             
             if (diffX > swipeThreshold) {
                 entry.classList.add('swiped');
@@ -154,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 entry.classList.remove('swiped');
             }
             
-            swipestartX = swipestartY = currentX = currentY = null;
+            swipeStartX = swipeStartY = currentX = currentY = null;
         });
     });
     
@@ -169,13 +188,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.addEventListener('touchstart', function(e) {
         if (window.scrollY === 0) {
-            pullstartY = e.touches.clientY;
+            pullstartY = e.touches[0].clientY;
         }
     });
     
     document.addEventListener('touchmove', function(e) {
         if (pullstartY && window.scrollY === 0) {
-            pullDistance = e.touches.clientY - pullstartY;
+            pullDistance = e.touches[0].clientY - pullstartY;
             
             if (pullDistance > 0) {
                 e.preventDefault();
@@ -189,7 +208,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
-    });
+    }, { passive: false });
+    
     
     document.addEventListener('touchend', function(e) {
         if (pullDistance > pullThreshold) {
@@ -221,19 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
         offlineIndicator.classList.add('show');
     });
     
-    // Show mobile navigation toggle on small screens
-    function checkScreenSize() {
-        if (window.innerWidth <= 768) {
-            navToggle.style.display = 'block';
-        } else {
-            navToggle.style.display = 'none';
-            navMenu.classList.remove('active');
-            navToggle.innerHTML = '☰';
-        }
-    }
-    
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
+
 });
 
 // CSS animations for mobile
@@ -246,3 +254,5 @@ const mobileAnimations = `
 const style = document.createElement('style');
 style.textContent = mobileAnimations;
 document.head.appendChild(style);
+
+
