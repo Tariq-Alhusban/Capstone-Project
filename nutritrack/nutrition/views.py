@@ -284,25 +284,25 @@ def my_recipes(request):
 def create_recipe(request):
     if request.method == 'POST':
         recipe_form = RecipeTemplateForm(request.POST)
-        ingredient_formset = RecipeIngredientFormSet(request.POST)
-        
-        if recipe_form.is_valid() and ingredient_formset.is_valid():
+        if recipe_form.is_valid():
             recipe = recipe_form.save(commit=False)
             recipe.user = request.user
             recipe.save()
             
-            # Save ingredients
-            ingredients = ingredient_formset.save(commit=False)
-            for ingredient in ingredients:
-                ingredient.recipe = recipe
-                ingredient.save()
-            
-            messages.success(request, f'Recipe "{recipe.name}" created successfully!')
-            return redirect('nutrition:recipe_detail', recipe.id)
+            ingredient_formset = RecipeIngredientFormSet(request.POST, instance=recipe)
+            if ingredient_formset.is_valid():
+                ingredient_formset.save()
+
+                messages.success(request, f'Recipe "{recipe.name}" created successfully!')
+                return redirect('nutrition:recipe_detail', recipe.id)
+            else:
+                print(ingredient_formset.errors)
+        else:
+            print(recipe_form.errors)
     else:
         recipe_form = RecipeTemplateForm()
         ingredient_formset = RecipeIngredientFormSet()
-    
+
     context = {
         'recipe_form': recipe_form,
         'ingredient_formset': ingredient_formset,
@@ -545,3 +545,16 @@ def quick_add_food(request, food_id):
         'meal_plan': meal_plan,
     }
     return render(request, 'nutrition/quick_add_food.html', context)
+
+def about_developer(request):
+    """About the developer page"""
+    context = {
+        'page_title': 'About Developer',
+        'developer_info': {
+            'name': 'Medical Graduate & Software Developer',
+            'location': 'Jordan',
+            'current_focus': ['Django Development', 'Medical Research', 'German Language Learning'],
+            'technologies': ['Python', 'Django', 'PostgreSQL', 'HTML5', 'CSS3', 'JavaScript'],
+        }
+    }
+    return render(request, 'nutrition/about_developer.html', context)

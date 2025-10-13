@@ -9,6 +9,7 @@ urlpatterns = [
     path('register/', views.register_view, name='register'),
     path('logout/', LogoutView.as_view(next_page='nutrition:login'), name='logout'),
     
+    
     # Main pages
     path('', views.dashboard, name='dashboard'),
     path('dashboard/', views.dashboard, name='dashboard'),
@@ -41,6 +42,9 @@ urlpatterns = [
     # Quick actions
     path('copy-yesterday/', views.copy_yesterday, name='copy_yesterday'),
 
+  # about ;
+  
+   path('about/', views.about_developer, name='about_developer'),
 
 
 

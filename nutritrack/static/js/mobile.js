@@ -1,32 +1,60 @@
 // Mobile-specific enhancements
 document.addEventListener('DOMContentLoaded', function() {
-    
-    // Mobile Navigation Toggle
-    const navToggle = document.createElement('button');
-    navToggle.className = 'nav-toggle';
-    navToggle.innerHTML = '☰';
-    navToggle.style.display = 'none';
-    
+    // Mobile Navigation Toggle - Fixed Implementation
     const navMenu = document.querySelector('.nav-menu');
     const navContainer = document.querySelector('.nav-container');
-    
+
     if (navContainer && navMenu) {
+        // Create toggle button
+        const navToggle = document.createElement('button');
+        navToggle.className = 'nav-toggle';
+        navToggle.innerHTML = '☰';
+        navToggle.setAttribute('aria-label', 'Toggle navigation menu');
+
+        // Insert toggle button before nav-menu
         navContainer.insertBefore(navToggle, navMenu);
-        
-        navToggle.addEventListener('click', function() {
+
+        // Toggle menu on click
+        navToggle.addEventListener('click', function(e) {
+            e.preventDefault();
             navMenu.classList.toggle('active');
             navToggle.innerHTML = navMenu.classList.contains('active') ? '✕' : '☰';
+
+            // Update aria-expanded attribute for accessibility
+            const isExpanded = navMenu.classList.contains('active');
+            navToggle.setAttribute('aria-expanded', isExpanded);
         });
-        
+
         // Close menu when clicking outside
         document.addEventListener('click', function(e) {
             if (!navContainer.contains(e.target) && navMenu.classList.contains('active')) {
                 navMenu.classList.remove('active');
                 navToggle.innerHTML = '☰';
+                navToggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        // Close menu when clicking on nav links (mobile)
+        const navLinks = navMenu.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                if (window.innerWidth <= 768) {
+                    navMenu.classList.remove('active');
+                    navToggle.innerHTML = '☰';
+                    navToggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                navMenu.classList.remove('active');
+                navToggle.innerHTML = '☰';
+                navToggle.setAttribute('aria-expanded', 'false');
             }
         });
     }
-    
     // Touch-friendly quantity adjustments
     const quantityInputs = document.querySelectorAll('input[type="number"]');
     quantityInputs.forEach(input => {
@@ -76,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Swipe to delete for meal entries
-    let startX, startY, currentX, currentY;
+    let swipestartX, swipestartY, currentX, currentY;
     const swipeThreshold = 100;
     
     document.querySelectorAll('.meal-entry').forEach(entry => {
@@ -88,18 +116,18 @@ document.addEventListener('DOMContentLoaded', function() {
         entry.appendChild(deleteAction);
         
         entry.addEventListener('touchstart', function(e) {
-            startX = e.touches.clientX;
-            startY = e.touches.clientY;
+            swipestartX = e.touches[0].clientX;
+            swipestartY = e.touches[0].clientY;
         });
         
         entry.addEventListener('touchmove', function(e) {
-            if (!startX || !startY) return;
+            if (!swipestartX || !swipestartY) return;
             
-            currentX = e.touches.clientX;
-            currentY = e.touches.clientY;
+            currentX = e.touches[0].clientX;
+            currentY = e.touches[0].clientY;
             
-            const diffX = startX - currentX;
-            const diffY = startY - currentY;
+            const diffX = swipestartX - currentX;
+            const diffY = swipestartY - currentY;
             
             if (Math.abs(diffX) > Math.abs(diffY) && diffX > 0) {
                 e.preventDefault();
@@ -109,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         entry.addEventListener('touchend', function(e) {
-            const diffX = startX - currentX;
+            const diffX = swipestartX - currentX;
             
             if (diffX > swipeThreshold) {
                 entry.classList.add('swiped');
@@ -126,12 +154,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 entry.classList.remove('swiped');
             }
             
-            startX = startY = currentX = currentY = null;
+            swipestartX = swipestartY = currentX = currentY = null;
         });
     });
     
     // Pull to refresh
-    let startY, pullDistance;
+    let pullstartY, pullDistance;
     const pullThreshold = 100;
     
     const pullIndicator = document.createElement('div');
@@ -141,13 +169,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.addEventListener('touchstart', function(e) {
         if (window.scrollY === 0) {
-            startY = e.touches.clientY;
+            pullstartY = e.touches.clientY;
         }
     });
     
     document.addEventListener('touchmove', function(e) {
-        if (startY && window.scrollY === 0) {
-            pullDistance = e.touches.clientY - startY;
+        if (pullstartY && window.scrollY === 0) {
+            pullDistance = e.touches.clientY - pullstartY;
             
             if (pullDistance > 0) {
                 e.preventDefault();
@@ -176,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
             pullIndicator.classList.remove('active');
         }
         
-        startY = pullDistance = null;
+        pullstartY = pullDistance = null;
     });
     
     // Offline detection

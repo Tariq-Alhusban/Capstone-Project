@@ -8,6 +8,10 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/mobile.css' %}">
+    <link rel="stylesheet" href="{% static 'css/auth_styles.css' %}">
+
+
 </head>
 <body class="{% block body_class %}{% endblock %}">
     
@@ -25,11 +29,34 @@
                 <a href="{% url 'nutrition:dashboard' %}" class="main-navbar">Meals</a>
                 <a href="{% url 'nutrition:food_search' %}" class="main-navbar">Foods</a>
                 <a href="{% url 'nutrition:my_recipes' %}" class="main-navbar">Recipes</a>
+                <a href="{% url 'nutrition:about_developer' %}" class="main-navbar">About</a>
+
             </div>
             
             <div class="nav-user">
                 <span class="user-name">{{ user.username }}</span>
-                <a href="{% url 'nutrition:logout' %}" class="btn btn-outline">Logout</a>
+                 <!-- <a href="{% url 'nutrition:logout' %}" class="btn btn-outline">Logout</a> -->
+                 <form action="{% url 'nutrition:logout' %}" method="post" style="display:inline;">
+                   {% csrf_token %}
+                   <button type="submit" class="btn btn-outline">Logout</button>
+                 </form>
+
+            </div>
+        </div>
+    </nav>
+    {% else %}
+    <!-- Guest Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="brand-icon">🍎</span>
+                <span class="brand-text">NutriTrack</span>
+            </div>
+
+            <div class="nav-menu">
+                <a href="{% url 'nutrition:about_developer' %}" class="nav-link">About</a>
+                <a href="{% url 'nutrition:login' %}" class="nav-link">Login</a>
+                <a href="{% url 'nutrition:register' %}" class="nav-link">Sign Up</a>
             </div>
         </div>
     </nav>
@@ -53,9 +80,13 @@
     <footer class="footer">
         <div class="container">
             <p>&copy; 2025 NutriTrack. Built with Django.</p>
+            <p><a href="{% url 'nutrition:about_developer' %}">About the Developer</a></p>
+
         </div>
     </footer>
     
-    {% block scripts %}{% endblock %}
+    {% block scripts %}
+    <script src="{% static 'js/mobile.js' %}"></script>
+    {% endblock %}
 </body>
 </html>

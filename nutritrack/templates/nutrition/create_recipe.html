@@ -210,6 +210,8 @@ document.addEventListener('click', function(e) {
         e.target.closest('.ingredient-form').remove();
         ingredientCount--;
         updateRecipeSummary();
+        updateIngredientNumbers();
+
     }
 });
 
