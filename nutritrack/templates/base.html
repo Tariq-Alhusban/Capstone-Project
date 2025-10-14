@@ -34,7 +34,10 @@
 
             </div>
             
-            <div class="nav-user">
+            
+            <div class="nav-user" style="display: flex; align-items: center; gap: 0.5rem;">
+               <img src="{{ user.userprofile.profile_image|default:'https://via.placeholder.com/35' }}" 
+                alt="Profile" style="width:35px; height:35px; border-radius:50%; object-fit: cover;">
                 <span class="user-name">{{ user.username }}</span>
                  <!-- <a href="{% url 'nutrition:logout' %}" class="btn btn-outline">Logout</a> -->
                  <form action="{% url 'nutrition:logout' %}" method="post" style="display:inline;">

@@ -14,7 +14,26 @@ from django.db.models import Sum
 from django.utils import timezone
 from django.utils.timezone import make_aware
 
+from django.contrib.auth import login
+from .forms import CustomUserCreationForm
+from .models import UserProfile
 
+
+def register(request):
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            profile_image_url = form.cleaned_data.get('profile_image')
+            user_profile, created = UserProfile.objects.get_or_create(user=user)
+            if profile_image_url:
+                user_profile.profile_image = profile_image_url
+                user_profile.save()
+            login(request, user)  # optionally log user in after registration
+            return redirect('nutrition:dashboard') 
+    else:
+        form = CustomUserCreationForm()
+    return render(request, 'auth/register.html', {'form': form})
 
 
 class CustomLoginView(LoginView):
@@ -24,17 +43,17 @@ class CustomLoginView(LoginView):
     def get_success_url(self):
         return '/dashboard/'
 
-def register_view(request):
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            username = form.cleaned_data.get('username')
-            messages.success(request, f'Account created for {username}! You can now log in.')
-            return redirect('nutrition:login')
-    else:
-        form = UserCreationForm()
-    return render(request, 'auth/register.html', {'form': form})
+#def register_view(request):
+#    if request.method == 'POST':
+#        form = UserCreationForm(request.POST)
+#        if form.is_valid():
+#            user = form.save()
+#            username = form.cleaned_data.get('username')
+#            messages.success(request, f'Account created for {username}! You can now log in.')
+#            return redirect('nutrition:login')
+#    else:
+#        form = UserCreationForm()
+#    return render(request, 'auth/register.html', {'form': form})
 
 @login_required
 def dashboard(request):

@@ -6,7 +6,7 @@ app_name = 'nutrition'
 urlpatterns = [
     # Authentication
     path('login/', views.CustomLoginView.as_view(), name='login'),
-    path('register/', views.register_view, name='register'),
+    path('register/', views.register, name='register'),
     path('logout/', LogoutView.as_view(next_page='nutrition:login'), name='logout'),
     
     

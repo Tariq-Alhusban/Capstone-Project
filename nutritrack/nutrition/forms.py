@@ -78,3 +78,18 @@ RecipeIngredientFormSet = inlineformset_factory(
     extra=3,
     can_delete=True
 )
+
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+
+class CustomUserCreationForm(UserCreationForm):
+    profile_image = forms.URLField(
+        required=False,
+        max_length=255,
+        widget=forms.URLInput(attrs={'placeholder': 'Enter profile image URL'})
+    )
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = UserCreationForm.Meta.fields + ('profile_image',)
