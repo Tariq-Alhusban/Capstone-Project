@@ -366,10 +366,21 @@ from django.utils import timezone
 
 @login_required
 def weekly_view(request):
-    # Get week range
     today = date.today()
-    week_start = today - timedelta(days=today.weekday())
+  
+    week_str = request.GET.get('week')
+    if week_str:
+        try:
+            week_start = datetime.strptime(week_str, '%Y-%m-%d').date()
+        except ValueError:
+            # If invalid date in param, fallback to current week
+            week_start = today - timedelta(days=today.weekday())
+    else:
+        today = date.today()
+        week_start = today - timedelta(days=today.weekday())
     week_end = week_start + timedelta(days=6)
+
+    prev_week = week_start - timedelta(days=7)
     
     # Get meal plans for the week
     weekly_plans = []
@@ -408,6 +419,7 @@ def weekly_view(request):
         'days_logged': actual_plans.count(),
         'goal_calories': goal_calories,
         'progress': progress,  # add this line
+        
     }
 
     context = {
@@ -416,6 +428,8 @@ def weekly_view(request):
         'week_start': week_start,
         'week_end': week_end,
         'today': today,
+        'prev_week': prev_week,
+
     }
     return render(request, 'nutrition/weekly_view.html', context)
 
@@ -560,52 +574,34 @@ def quick_add_food(request, food_id):
 
 @login_required
 def copy_day(request, date_str):
-    """
-    Copy all MealEntry records from `date_str`'s MealPlan into today's MealPlan.
-    """
-    # parse source date
+    # Convert the date string (YYYY-MM-DD) to a datetime object
     try:
-        source_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        date = datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError:
         messages.error(request, "Invalid date format.")
         return redirect("nutrition:weekly_view")
 
-    # get the source plan (the one we're copying from)
-    source_plan = MealPlan.objects.filter(user=request.user, date=source_date).first()
-    if not source_plan:
+    # Find the meal plan for that day
+    meal_plan = MealPlan.objects.filter(user=request.user, date=date).first()
+    if not meal_plan:
         messages.error(request, "No meal plan found for that date to copy.")
         return redirect("nutrition:weekly_view")
 
-    # target is today (change this if you want a different target)
-    target_date = date.today()
-    target_plan, created = MealPlan.objects.get_or_create(
+    # Create a new meal plan for the next day
+    next_day = date + timedelta(days=1)
+    copied_plan, created = MealPlan.objects.get_or_create(
         user=request.user,
-        date=target_date,
-        defaults={'goal_calories': getattr(source_plan, 'goal_calories', 2000)}
+        date=next_day,
     )
 
-    # OPTIONAL: clear existing target entries before copying
-    target_plan.mealentry_set.all().delete()
+    # Copy all meal entries from the selected day to the next day
+    for entry in meal_plan.meal_entries.all():
+        entry.pk = None  # Clone the entry
+        entry.meal_plan = copied_plan
+        entry.save()
 
-    # copy entries (use mealentry_set, not meal_entries)
-    for entry in source_plan.mealentry_set.all():
-        # create a new MealEntry while copying common fields; use getattr to be safe
-        MealEntry.objects.create(
-            meal_plan=target_plan,
-            # try to copy typical fields (adjust names if your model differs)
-            **{
-                'food': getattr(entry, 'food', None),
-                'food_item': getattr(entry, 'food_item', None),  # if you use this name
-                'meal_type': getattr(entry, 'meal_type', getattr(entry, 'type', None)),
-                'quantity': getattr(entry, 'quantity', None),
-                'unit': getattr(entry, 'unit', None),
-                'calories': getattr(entry, 'calories', None),
-                # add any other fields you want copied here
-            }
-        )
-
-    messages.success(request, f"Copied meals from {source_date.isoformat()} to {target_date.isoformat()}.")
-    return redirect('nutrition:meal_plan_by_date', date_str=target_date.strftime('%Y-%m-%d'))
+    messages.success(request, f"Copied meal plan from {date} to {next_day}.")
+    return redirect("nutrition:weekly_view")
 
 def about_developer(request):
     """About the developer page"""
