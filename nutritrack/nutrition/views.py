@@ -12,6 +12,9 @@ from .forms import CustomFoodForm, MealEntryForm, RecipeTemplateForm, RecipeIngr
 from django.core.paginator import Paginator
 from django.db.models import Sum
 from django.utils import timezone
+from django.utils.timezone import make_aware
+
+
 
 
 class CustomLoginView(LoginView):
@@ -391,14 +394,22 @@ def weekly_view(request):
         user=request.user,
         date__range=[week_start, week_end]
     )
-    
+
+    total_calories = sum(plan.total_calories() for plan in actual_plans)
+    avg_calories = total_calories / 7 if actual_plans else 0
+    goal_calories = 2000 * 7
+
+    # 🧮 Calculate progress percentage
+    progress = (total_calories / goal_calories) * 100 if goal_calories > 0 else 0
+
     weekly_stats = {
-        'total_calories': sum(plan.total_calories() for plan in actual_plans),
-        'avg_calories': sum(plan.total_calories() for plan in actual_plans) / 7 if actual_plans else 0,
+        'total_calories': total_calories,
+        'avg_calories': avg_calories,
         'days_logged': actual_plans.count(),
-        'goal_calories': 2000 * 7,
+        'goal_calories': goal_calories,
+        'progress': progress,  # add this line
     }
-    
+
     context = {
         'weekly_plans': weekly_plans,
         'weekly_stats': weekly_stats,
@@ -407,6 +418,7 @@ def weekly_view(request):
         'today': today,
     }
     return render(request, 'nutrition/weekly_view.html', context)
+
 
 @login_required
 def meal_plan_by_date(request, date_str=None):
@@ -545,6 +557,55 @@ def quick_add_food(request, food_id):
         'meal_plan': meal_plan,
     }
     return render(request, 'nutrition/quick_add_food.html', context)
+
+@login_required
+def copy_day(request, date_str):
+    """
+    Copy all MealEntry records from `date_str`'s MealPlan into today's MealPlan.
+    """
+    # parse source date
+    try:
+        source_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        messages.error(request, "Invalid date format.")
+        return redirect("nutrition:weekly_view")
+
+    # get the source plan (the one we're copying from)
+    source_plan = MealPlan.objects.filter(user=request.user, date=source_date).first()
+    if not source_plan:
+        messages.error(request, "No meal plan found for that date to copy.")
+        return redirect("nutrition:weekly_view")
+
+    # target is today (change this if you want a different target)
+    target_date = date.today()
+    target_plan, created = MealPlan.objects.get_or_create(
+        user=request.user,
+        date=target_date,
+        defaults={'goal_calories': getattr(source_plan, 'goal_calories', 2000)}
+    )
+
+    # OPTIONAL: clear existing target entries before copying
+    target_plan.mealentry_set.all().delete()
+
+    # copy entries (use mealentry_set, not meal_entries)
+    for entry in source_plan.mealentry_set.all():
+        # create a new MealEntry while copying common fields; use getattr to be safe
+        MealEntry.objects.create(
+            meal_plan=target_plan,
+            # try to copy typical fields (adjust names if your model differs)
+            **{
+                'food': getattr(entry, 'food', None),
+                'food_item': getattr(entry, 'food_item', None),  # if you use this name
+                'meal_type': getattr(entry, 'meal_type', getattr(entry, 'type', None)),
+                'quantity': getattr(entry, 'quantity', None),
+                'unit': getattr(entry, 'unit', None),
+                'calories': getattr(entry, 'calories', None),
+                # add any other fields you want copied here
+            }
+        )
+
+    messages.success(request, f"Copied meals from {source_date.isoformat()} to {target_date.isoformat()}.")
+    return redirect('nutrition:meal_plan_by_date', date_str=target_date.strftime('%Y-%m-%d'))
 
 def about_developer(request):
     """About the developer page"""

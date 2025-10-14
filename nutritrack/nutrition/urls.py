@@ -18,6 +18,7 @@ urlpatterns = [
     path('meal-plan/<int:plan_id>/', views.meal_plan_detail, name='meal_plan_detail'),
     path('date/<str:date_str>/', views.meal_plan_by_date, name='meal_plan_by_date'),
     path('weekly/', views.weekly_view, name='weekly_view'),
+    path('copy_day/<str:date_str>/', views.copy_day, name='copy_day'),
     path('analytics/', views.nutrition_analytics, name='nutrition_analytics'),
 
     # food management

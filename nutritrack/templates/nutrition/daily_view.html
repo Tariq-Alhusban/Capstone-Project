@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Meal Plan for {{ selected_date }}</h2>
+    <p>
+        {% if is_today %}<strong>Today</strong>{% elif is_future %}(Upcoming){% endif %}
+    </p>
+
+    <div class="mb-3">
+        <a href="{% url 'nutrition:meal_plan_by_date' prev_date %}" class="btn btn-outline-primary">← Previous</a>
+        <a href="{% url 'nutrition:meal_plan_by_date' next_date %}" class="btn btn-outline-primary">Next →</a>
+    </div>
+
+    <h4>Meals</h4>
+    {% if meal_plan.mealentry_set.all %}
+        <ul class="list-group mb-3">
+            {% for entry in meal_plan.mealentry_set.all %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ entry.meal_type|capfirst }} - {{ entry.food.name }} ({{ entry.quantity }} {{ entry.unit }})
+                <span>{{ entry.calories }} kcal</span>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No meals logged for this date yet.</p>
+    {% endif %}
+
+    <div>
+        <a href="{% url 'nutrition:weekly_view' %}" class="btn btn-secondary">← Back to Weekly View</a>
+        <a href="{% url 'nutrition:copy_day' selected_date|date:'Y-m-d' %}" class="btn btn-success">Copy to Today</a>
+    </div>
+</div>
+{% endblock %}

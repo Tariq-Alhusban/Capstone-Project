@@ -34,7 +34,7 @@
             <span class="stat-label">Days Logged</span>
         </div>
         <div class="stat">
-            <span class="stat-value">{{ weekly_stats.total_calories|mul:100|div:weekly_stats.goal_calories|floatformat:0 }}%</span>
+            <span class="stat-value">{{ weekly_stats.progress|floatformat:0 }}%</span>
             <span class="stat-label">Weekly Goal</span>
         </div>
     </div>
