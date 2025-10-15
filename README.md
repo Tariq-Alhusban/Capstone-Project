@@ -190,6 +190,7 @@ erDiagram
     
 
  ```
+
 ### 🔗 Key Database Relationships
 User ↔ MealPlan: One-to-Many (one user, many daily plans)
 
@@ -198,7 +199,11 @@ MealPlan ↔ Food: Many-to-Many through MealEntry (enables food reuse with diffe
 Food ↔ FoodCategory: Many-to-One (organized nutrition database)
 
 User ↔ Food: One-to-Many for custom foods (users can add personal foods)    
+Recipes ↔ foods: are Many-to-Many through RECIPE_INGREDIENT table. This enables a recipe to have many foods (ingredients), and each food can be part of many recipes, with extra data like quantity/unit per ingredient.
 
+### full detaield 
+
+<img width="2107" height="2344" alt="Untitled diagram-2025-10-15-231804" src="https://github.com/user-attachments/assets/eaba3b91-b0e1-465a-b386-b7e114141eb1" />
 
 
 ## 🎯 Development Roadmap
@@ -213,8 +218,8 @@ User ↔ Food: One-to-Many for custom foods (users can add personal foods)
 
 ## 📊 Sample Data Loaded
 
-- 8 food categories (Proteins, Vegetables, Fruits, Grains & Starches, Dairy, Healthy Fats, Beverages, Snacks)
-- 15+ demo foods seeded for testing purposes
+- 18 food categories (Proteins, Vegetables, Fruits, Grains & Starches, Dairy, Healthy Fats, Beverages, Snacks, ....)
+- 100+ demo foods seeded for testing purposes
 - Easy to expand with more foods via the loader script
 
 ### Example foods:
